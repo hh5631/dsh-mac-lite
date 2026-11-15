@@ -1,0 +1,11 @@
+{
+  "name": "dsh-mac-lite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MAC 轻量：为 macOS 日常使用裁剪的轻量 Agent 模式（无 PowerShell / 无 plan / 无 workflow）。",
+  "type": "module",
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  },
+  "license": "MIT"
+}
