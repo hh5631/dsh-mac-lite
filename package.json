@@ -2,8 +2,11 @@
   "name": "dsh-mac-lite",
   "version": "1.0.0",
   "private": true,
-  "description": "MAC 轻量：为 macOS 日常使用裁剪的轻量 Agent 模式（无 PowerShell / 无 plan / 无 workflow）。",
+  "description": "MAC 轻量：为 macOS 日常使用裁剪的轻量 Agent 模式（无 PowerShell / 无 plan / 无 workflow，含 Office 文档与子代理）。",
   "type": "module",
+  "scripts": {
+    "check": "node scripts/check.mjs"
+  },
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" }
   },

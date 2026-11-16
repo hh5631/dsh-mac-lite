@@ -1,49 +1,27 @@
 # MAC 轻量：只跑 macOS 的轻量模式（无 PowerShell 行、无 plan mode、无 workflow）。
-# 日常主力：读写文件 / glob·grep / bash + 后台任务 / 网页检索 / 技能 / 子代理 / 上下文压缩。
+# 日常主力：读写文件 / glob·grep / bash + 后台任务 / 网页检索 / 技能 / Office / 子代理 / 上下文压缩。
 - insert:
     - id: preset-mac-lite
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: mac-lite
         name: MAC轻量
-        description: macOS 日常轻量模式：文件读写、检索、bash 与后台任务、网页检索、技能、子代理，不做跨平台与重型编排。
+        description: macOS 日常轻量模式：文件读写、检索、bash 与后台任务、网页检索、技能、Office 文档、子代理，不做跨平台与重型编排。
         order: 5
         plugins:
+          # 身份段只写本 preset 独有的部分：输出格式、思考、规划、工具选择这些
+          # 通用纪律已经由 user-global AGENTS.md 经 agent-instructions 逐请求注入，
+          # 这里再抄一遍等于每轮双倍 token，故刻意不重复。
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
               prefix: |-
-                You are 小霞, a lightweight coding-and-life assistant for a macOS user
-                (王豪, an embedded software engineer). Speak Simplified Chinese, be
-                concise and direct, and answer with conclusions first. Work from real
-                inspection rather than guessing; when uncertain, ask one short question.
-
-                OPERATOR RULES (highest priority; violating any of them is a task failure):
-                1. Output: Simplified Chinese, concise, conclusion first; evidence only
-                as much as needed. No long reports unless explicitly requested.
-                2. Thinking: do not restate known information, do not self-correct over
-                multiple rounds; decide directly. If uncertain, ask exactly one short
-                question instead of guessing and reworking.
-                3. Planning: list a 3-5 step plan before acting. If you have taken more
-                than 5 consecutive exploration steps without locating the target, stop
-                and re-plan. Before touching files, confirm paths exist in one batch
-                with glob — never guess paths.
-                4. Concurrency: issue all independent queries of one step in parallel
-                (hard limit 10); anything with a data dependency must be serial.
-                5. Tool choice (hard rule): never run grep / ls / cat / find / sed / rg
-                through bash. Use the grep / glob / read / edit / write tools and batch
-                them. bash is only for real command execution (build, test, git,
-                process inspection).
-                6. Reading: read large files with offset/limit; truncate long output
-                with head/tail. Keep grep patterns precise to avoid matching comments.
-                Confirm you have not already run the same command before running it.
-                7. Parallelism and delegation: prefer parallel subagents for multi-module
-                audits and multi-option research; do not delegate small single-file
-                edits.
-                8. Quality loop: read the target file before changing it, verify
-                immediately after (run it or check the diff). Every conclusion must be
-                backed by evidence; if you cannot back it, say so plainly instead of
-                inventing one.
+                You are 小霞, a lightweight assistant for 王豪, an embedded software
+                engineer working on macOS. Reply in Simplified Chinese, lead with the
+                conclusion, and stay brief. Ground answers in real inspection rather
+                than guesses; when genuinely uncertain, ask one short question.
+                This preset targets macOS only: no PowerShell, no plan mode, and no
+                workflow engine — prefer the built-in tools over heavy orchestration.
           - id: agent-instructions
             name: '@deepseek-ai/dsh-agent-instructions'
             config:
@@ -57,6 +35,7 @@
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
             config:
+              # 保持 false：edit 已覆盖改动场景，不额外注册 apply_patch。
               applyPatch: false
           - id: tool-fs-search
             name: '@deepseek-ai/dsh-tool-fs-search'
@@ -68,6 +47,8 @@
             name: '@deepseek-ai/dsh-skill-filesystem'
           - id: tool-skill
             name: '@deepseek-ai/dsh-tool-skill'
+          # 上下文压缩：修剪器行必须由 preset 挂载（宿主 web 层已 disabled），
+          # 其阈值即插件默认值，不再重复声明。
           - id: compaction
             name: cordis:group
             group: true
@@ -81,16 +62,15 @@
                 name: '@deepseek-ai/dsh-command-compact'
               - id: tool-result-pruner
                 name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
-                config:
-                  thresholdChars: 8192
-                  headChars: 4096
-                  tailChars: 1024
           - id: delegation
             name: cordis:group
             group: true
             config:
+              # 轻量取向：不暴露 interrupt_agent，少一个工具就是少一份常驻提示词。
               - id: tool-subagent-control
                 name: '@deepseek-ai/dsh-tool-subagent-control'
+                config:
+                  interrupt: false
               - id: tool-subagent
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
@@ -110,10 +90,13 @@
           - id: tool-web
             name: '@deepseek-ai/dsh-tool-web'
             config:
-              fetch: true
               searchTimeoutMs: 60000
           - id: present
             name: '@deepseek-ai/dsh-tool-present'
+          # 复用宿主已挂的 office-kit 与 office 技能：三个 office_* 工具只在
+          # 加载 office 系技能后才进目录，空闲时零常驻开销。
+          - id: tool-office
+            name: '@deepseek-ai/dsh-tool-office'
           - id: tool-plugin-manager
             name: '@deepseek-ai/dsh-plugin-manager/tools'
             disabled: !!js "!ctx.get('profileContext')"
