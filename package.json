@@ -4,6 +4,15 @@
   "private": true,
   "description": "MAC 轻量：为 macOS 日常使用裁剪的轻量 Agent 模式（无 PowerShell / 无 plan / 无 workflow，含 Office 文档与子代理）。",
   "type": "module",
+  "files": ["cordis.patch.yml", "scripts", "README.md"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hh5631/dsh-mac-lite.git"
+  },
+  "homepage": "https://github.com/hh5631/dsh-mac-lite#readme",
+  "bugs": {
+    "url": "https://github.com/hh5631/dsh-mac-lite/issues"
+  },
   "scripts": {
     "check": "node scripts/check.mjs"
   },

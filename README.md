@@ -49,6 +49,22 @@ preset 漏了。
 - 出现「遍历 N 个文件逐个检查」「按条件筛选后再批量处理」「多步结果互相依赖」这类
   一次程序内能自洽跑完的活儿，手动切到 **MAC轻量·PTC**（mac-lite-ptc）。
 
+## 安装
+
+```sh
+# 方式一：预构建 tarball（推荐，无需构建授权）
+dsh plugin --profile web add https://github.com/hh5631/dsh-mac-lite/releases/latest/download/dsh-mac-lite.tgz
+
+# 方式二：直接从 GitHub 源码安装
+dsh plugin --profile web add github:hh5631/dsh-mac-lite
+
+# 方式三：本地克隆后安装
+git clone https://github.com/hh5631/dsh-mac-lite.git
+dsh plugin --profile web add link:$PWD/dsh-mac-lite
+```
+
+安装后**新会话生效**；已有会话保留创建时的组合。
+
 ## 安装/修改
 
 已作为 profile bundle 安装到 web profile。改完 `cordis.patch.yml` 后，
