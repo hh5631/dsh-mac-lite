@@ -50,15 +50,23 @@ try {
 ok('YAML 语法可解析')
 
 const insert = Array.isArray(doc) ? doc[0]?.insert : undefined
-if (!Array.isArray(insert) || insert.length !== 1) {
-  fail('patch 顶层应为 [{ insert: [一条 preset 声明] }]')
+if (!Array.isArray(insert) || insert.length === 0) {
+  fail('patch 顶层应为 [{ insert: [至少一条 preset 声明] }]')
   process.exit(1)
 }
-const preset = insert[0]
-if (preset.name !== '@deepseek-ai/dsh-agent-preset') fail('insert 行的 name 应为 @deepseek-ai/dsh-agent-preset')
-for (const field of ['id', 'plugins']) {
-  if (preset.config?.[field] === undefined) fail(`preset config 缺少必填字段 ${field}`)
+ok(`insert 含 ${insert.length} 条 preset 声明`)
+
+const presetIds = []
+for (const preset of insert) {
+  if (preset.name !== '@deepseek-ai/dsh-agent-preset') fail(`${preset.id}: insert 行的 name 应为 @deepseek-ai/dsh-agent-preset`)
+  for (const field of ['id', 'plugins']) {
+    if (preset.config?.[field] === undefined) fail(`${preset.id}: preset config 缺少必填字段 ${field}`)
+  }
+  presetIds.push(preset.config?.id)
 }
+const dupPreset = [...new Set(presetIds.filter((id, i) => presetIds.indexOf(id) !== i))]
+if (dupPreset.length > 0) fail('重复的 preset config.id: ' + dupPreset.join(', '))
+else ok(`preset id 唯一（${presetIds.join(', ')}）`)
 
 /** 展开 group 行，得到扁平的 (id, name, config) 列表。 */
 const rows = []
@@ -71,12 +79,30 @@ const walk = (list) => {
     rows.push(row)
   }
 }
-walk(preset.config?.plugins)
-
-const ids = rows.map((row) => row?.id).filter(Boolean)
-const duplicated = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))]
-if (duplicated.length > 0) fail('重复的行 id: ' + duplicated.join(', '))
-else ok(`行 id 唯一（${ids.length} 行）`)
+// 行 id 只需在同一个 preset 作用域内唯一；不同 preset 各在独立 scope，允许同名。
+let dupTotal = 0
+for (const preset of insert) {
+  const scoped = []
+  const walkScoped = (list) => {
+    for (const row of list ?? []) {
+      if (row?.name === 'cordis:group') {
+        walkScoped(Array.isArray(row.config) ? row.config : undefined)
+        continue
+      }
+      scoped.push(row)
+    }
+  }
+  walkScoped(preset.config?.plugins)
+  const scopedIds = scoped.map((row) => row?.id).filter(Boolean)
+  const duplicated = [...new Set(scopedIds.filter((id, i) => scopedIds.indexOf(id) !== i))]
+  if (duplicated.length > 0) {
+    fail(`${preset.config?.id}: 重复的行 id — ` + duplicated.join(', '))
+    dupTotal += duplicated.length
+  }
+  rows.push(...scoped)
+  if (duplicated.length === 0) ok(`${preset.config?.id}: 行 id 作用域内唯一（${scopedIds.length} 行）`)
+}
+if (dupTotal === 0) ok(`合计 ${rows.length} 行`)
 
 const schemaCache = new Map()
 let checked = 0
