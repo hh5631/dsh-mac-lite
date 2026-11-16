@@ -1,26 +1,39 @@
 # dsh-mac-lite — MAC轻量
 
-给 macOS 日常使用裁剪出来的轻量 Agent 模式（预设 id：`mac-lite`，显示名：**MAC轻量**）。
+给 macOS 日常使用裁剪出来的轻量 Agent 模式。**两个变体**：
+
+| preset id | 显示名 | 执行器 | 适用 |
+|---|---|---|---|
+| `mac-lite` | MAC轻量 | 原生 | 日常问答、改代码、单点排查 —— **首字最快** |
+| `mac-lite-ptc` | MAC轻量·PTC | PTC | 批量遍历、条件分支、多文件审计 —— **一轮跑完多步** |
+
+两者插件裁剪完全相同，**只差执行器一行**。之所以拆成两个 preset：DSH 规定
+「最近作用域的执行器决定工具行为；同一作用域只允许一个执行器」
+（`dsh-tool-executor-ptc` 文档），塞进同一个 preset 会启动失败。
 
 ## 保留的工具/能力
 
-- `read` / `read_image` / `write` / `edit`（开着 `applyPatch: false`，不重复注册 `apply_patch`）
+- `read` / `read_image` / `write` / `edit`（`applyPatch: false`，不重复注册 `apply_patch`）
 - `glob` / `grep`（文件检索）
-- `bash`（可后台任务）+ `job_*` 后台任务管理
+- `bash`（`enableRunInBackground: true`）+ `job_*` 后台任务管理
 - `web_search` / `web_fetch`（网页检索抓取）
 - `skill`（技能目录）、`todo_write`、`ask_user_question`、`present`
-- `subagent` / `subagent_fork`（需要时再派子代理，不暴露 `interrupt_agent`）
+- `subagent` / `subagent_fork`（不暴露 `interrupt_agent`）
 - Office 文档：`office_render` / `office_convert` / `office_recalculate`
-  （复用宿主已挂的 `office-kit` 与 office 技能；**仅在加载 `office` 系技能后才进工具目录**，空闲时零常驻开销）
+  （仅在加载 `office` 系技能后才进工具目录，空闲时零常驻开销）
 - 上下文压缩（compaction + 工具结果修剪，阈值即插件默认值 8192 / 4096 / 1024）
 - 插件管理工具（仅在有 profile 上下文时出现）
+- **仅 mac-lite-ptc**：`run_code`（PTC 执行器暴露的唯一直接调用入口，其余工具在程序内以 SDK 绑定调用）
 
 ## 刻意不开
 
 - PowerShell 相关（`tool-pwsh`），本模式只跑 macOS
 - plan mode（不额外注入规划提示词）
 - `workflow` 重型多智能体编排
-- 定时任务 `schedule`、goal 相关命令
+- 定时任务 `schedule`、goal 相关命令 —— 需要时切到「标准」预设
+- `persistent-bash`：它与 `tool-bash` 争用同名 `bash` 工具，且**没有 `run_in_background`**。
+  跨调用保留 shell 状态的场景用宿主已挂的 `terminal_open` / `terminal_send`，
+  那条路径不占用 `bash` 工具名。
 
 ## 提示词策略
 
@@ -30,10 +43,16 @@ persona 只保留身份、语言、结论优先和 macOS-only 取向。输出格
 ——重复等于每轮双倍 token、拖慢首字延迟。要改这些规则请改 AGENTS.md，不是因为
 preset 漏了。
 
+## 怎么选变体
+
+- 默认用 **MAC轻量**（mac-lite）。绝大多数任务它是快的那条路。
+- 出现「遍历 N 个文件逐个检查」「按条件筛选后再批量处理」「多步结果互相依赖」这类
+  一次程序内能自洽跑完的活儿，手动切到 **MAC轻量·PTC**（mac-lite-ptc）。
+
 ## 安装/修改
 
 已作为 profile bundle 安装到 web profile。改完 `cordis.patch.yml` 后，
-新会话生效；已存在的会话保留启动时的组合。
+**新会话生效**；已存在的会话保留创建时的组合（切换要去界面里改当前会话的预设）。
 
 ### 改完自检
 
@@ -41,7 +60,7 @@ preset 漏了。
 npm run check
 ```
 
-`scripts/check.mjs` 会依次校验：YAML 语法可解析 → insert 结构正确 → 行 id 无重复 →
-每个 `name` 能从宿主解析 → 每段 `config` 能通过对应插件的 schemastery schema。
-字段名写错、插件改名、行被宿主移除都会直接以非 0 退出码报出来。
+`scripts/check.mjs` 会依次校验：YAML 语法可解析 → insert 结构正确 → preset `config.id` 唯一
+→ 每个 preset 内行 id 作用域内唯一 → 每个 `name` 能从宿主解析 → 每段 `config` 通过对应
+插件的 schemastery schema。字段名写错、插件改名、行被宿主移除都会以非 0 退出码报出。
 宿主装在非默认路径时，用 `DSH_HOST_PACKAGE` 指定 dsh 的 `package.json`。
