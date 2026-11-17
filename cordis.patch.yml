@@ -44,6 +44,11 @@
               sampleOverCapGlobResults: false
           - id: tool-jobs
             name: '@deepseek-ai/dsh-tool-jobs'
+            config:
+              # dsh-tool-jobs 没有默认值（lib/index.js:94 maxConsecutiveWakes 无 default），
+              # 不配置则后台任务每完成一个就唤醒一轮，连续唤醒次数无上限 = 多花 token。
+              # 3 轮足够把长任务收尾；超出后不再自动唤醒，改为等下一次用户输入。
+              maxConsecutiveWakes: 3
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'
           - id: tool-skill
@@ -138,6 +143,11 @@
               sampleOverCapGlobResults: false
           - id: tool-jobs
             name: '@deepseek-ai/dsh-tool-jobs'
+            config:
+              # dsh-tool-jobs 没有默认值（lib/index.js:94 maxConsecutiveWakes 无 default），
+              # 不配置则后台任务每完成一个就唤醒一轮，连续唤醒次数无上限 = 多花 token。
+              # 3 轮足够把长任务收尾；超出后不再自动唤醒，改为等下一次用户输入。
+              maxConsecutiveWakes: 3
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'
           - id: tool-skill
